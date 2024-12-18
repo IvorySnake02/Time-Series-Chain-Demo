@@ -122,24 +122,37 @@ def fastfindNNPre(x, m):
     return X, n, sumx2, sumx, meanx, sigmax2, sigmax
 
 def fastfindNN(X, y, n, m, sumx2, sumx, meanx, sigmax2, sigmax):
-    dropval= y[1]
-    y = torch.flip(y)
-    y_padded = torch.cat(y, torch.zeros(m))
+    dropval= y[0]
+    y = torch.flip(y,dims=[0,])
+    y_padded = torch.cat((y, torch.zeros(n*2-m)))
 
     #The main trick of getting dot products in O(n log n) time
-    Y = torch.fft(y)
+    Y = torch.fft.fft(y_padded)
     Z = X*Y
     z = torch.fft.ifft(Z)
 
     #compute y stats -- O(n)
     sumy = torch.sum(y_padded)
     sumy2 = sum(y_padded**2)
-    meany=sumy/m
+    meany=  sumy/m
     sigmay2 = sumy2/m-meany**2
     sigmay = math.sqrt(sigmay2)
 
-    dist = 2*(m-(z[m:n]-m*meanx*meany)/(sigmax*sigmay))
-    dist = math.sqrt(dist)
-    lastz=torch.real(z[m:n])
+    dist = 2*(m-(z[m-1:n]-m*meanx*meany)/(sigmax*sigmay))
+    dist = torch.sqrt(dist)
+    lastz= torch.real(z[m-1:n])
 
     return dist ,lastz ,dropval ,sumy ,sumy2
+
+
+X, n, sumx2, sumx, meanx, sigmax2, sigmax = fastfindNNPre(x_data, 10)
+#list = fastfindNNPre(x_data, 10)
+#print(list)
+
+
+subsequence = torch.tensor([1,2,3,4,5,6,7,8,9,10])
+subsequenceLength = 10
+
+list = fastfindNN(X, subsequence, n , subsequenceLength, sumx2, sumx, meanx, sigmax2, sigmax)
+
+print(list)
